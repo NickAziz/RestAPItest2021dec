@@ -1,0 +1,454 @@
+{
+	"info": {
+		"_postman_id": "fc3e28fb-63cb-4937-8b17-d322758ec380",
+		"name": "e2e_taltek",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "E2E API Testing Copy",
+			"item": [
+				{
+					"name": "Register new student",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.environment.set(\"first_name\", pm.variables.replaceIn(\"API{{$randomFirstName}}\"));\r",
+									"pm.environment.set(\"last_name\", pm.variables.replaceIn(\"API{{$randomLastName}}\"));\r",
+									"pm.environment.set(\"email\", pm.variables.replaceIn(\"API{{$randomEmail}}\"));\r",
+									"pm.environment.set(\"dob_year\", _.random(1935,2013));\r",
+									"pm.environment.set(\"dob_month\", _.random(1,12));\r",
+									"pm.environment.set(\"dob_day\", _.random(1,28));\r",
+									"\r",
+									"// if(pm.environment.get(\"dob_month\") === 1|3|5|7|8|10|12){\r",
+									"// pm.environment.set(\"dob_day\", 31);\r",
+									"// }else if(pm.environment.get(\"dob_month\") === 4|6|9|11){\r",
+									"// pm.environment.set(\"dob_day\", 30);\r",
+									"// }else{\r",
+									"// pm.environment.set(\"dob_day\", 28);\r",
+									"// };\r",
+									"\r",
+									"var i=_.random(0,1);\r",
+									"if(i>0){\r",
+									"    pm.environment.set(\"gender\",\"male\")\r",
+									"}else{\r",
+									"    pm.environment.set(\"gender\",\"female\")\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const responseData= pm.response.json();\r",
+									"pm.test(\"Test success criterias\", function(){\r",
+									"pm.expect(responseData.success).to.be.true;\r",
+									"pm.expect(responseData.message).to.be.eql(\"Registration Success\", \"The message is incorrect\")\r",
+									"});\r",
+									"\r",
+									"pm.environment.set(\"student_id\", responseData.id);\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\" : \"{{first_name}}\",\r\n    \"lastName\" : \"{{last_name}}\",\r\n    \"email\"     : \"{{email}}\",\r\n    \"password\"  : \"123456\",\r\n    \"confirmPassword\"  : \"123456\",\r\n    \"dob\"       : {\r\n        \"year\"      : {{dob_year}},\r\n        \"month\"     : {{dob_month}},\r\n        \"day\"       : {{dob_day}}\r\n    },\r\n    \"gender\"    : \"{{gender}}\",\r\n    \"agree\"     : true\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}signup",
+							"host": [
+								"{{baseUrl}}signup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify created info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const respData= pm.response.json();\r",
+									"pm.test(\"Verify first name correctly entered in the database\", function(){\r",
+									"    pm.expect(respData.data.firstName).to.be.eql(pm.environment.get(\"first_name\"));\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}student/{{student_id}}",
+							"host": [
+								"{{baseUrl}}student"
+							],
+							"path": [
+								"{{student_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify that student exist in all students call",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const respData = pm.response.json();\r",
+									"const deletedStudent= respData.data.find(ds => ds.studentId === pm.environment.get(\"student_id\"));\r",
+									"pm.test(\"Verify that student does exist\", function(){\r",
+									"    console.log(deletedStudent.studentId)\r",
+									"    pm.expect(deletedStudent.firstName).to.be.eql(environment.first_name);\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}students",
+							"host": [
+								"{{baseUrl}}students"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login as user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const respData= pm.response.json();\r",
+									"pm.environment.set(\"bearer_token\", respData.token);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\" : \"{{student_id}}\",\r\n    \"password\" : \"123456\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}login",
+							"host": [
+								"{{baseUrl}}login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update student details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{bearer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\" : \"{{first_name}}\",\r\n    \"lastName\" : \"{{last_name}}\",\r\n    \"email\"     : \"{{email}}\",\r\n    \"dob\"       : {\r\n        \"year\"      : {{dob_year}},\r\n        \"month\"     : {{dob_month}},\r\n        \"day\"       : {{dob_day}}\r\n    },\r\n    \"gender\"    : \"{{gender}}\",\r\n    \"agree\"     : true\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}student/{{student_id}}",
+							"host": [
+								"{{baseUrl}}student"
+							],
+							"path": [
+								"{{student_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify updated info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const respData= pm.response.json();\r",
+									"pm.test(\"Verify first name correctly updated in the database\", function(){\r",
+									"    pm.expect(pm.response.code).to.be.eql(200);\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}student/{{student_id}}",
+							"host": [
+								"{{baseUrl}}student"
+							],
+							"path": [
+								"{{student_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update password",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{bearer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"password\"  : \"1234567\",\r\n    \"confirmPassword\"  : \"1234567\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}updatePassword/{{student_id}}",
+							"host": [
+								"{{baseUrl}}updatePassword"
+							],
+							"path": [
+								"{{student_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login as user with old password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const respData= pm.response.json();\r",
+									"pm.test(\"User should not be able to login\",function(){\r",
+									"    pm.expect(pm.response.code).to.be.eql(401);\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\" : \"{{student_id}}\",\r\n    \"password\" : \"123456\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}login",
+							"host": [
+								"{{baseUrl}}login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login as user with new password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const respData= pm.response.json();\r",
+									"pm.environment.set(\"bearer_token\", respData.token);\r",
+									"pm.test(\"User is able to login\", function(){\r",
+									"    pm.expect(pm.response.code).to.be.eql(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\" : \"{{student_id}}\",\r\n    \"password\" : \"1234567\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}login",
+							"host": [
+								"{{baseUrl}}login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete student details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{bearer_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}student/{{student_id}}",
+							"host": [
+								"{{baseUrl}}student"
+							],
+							"path": [
+								"{{student_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify user deleted",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const respData= pm.response.json();\r",
+									"pm.test(\"Verify first name correctly updated in the database\", function(){\r",
+									"    pm.expect(pm.response.code).to.be.eql(404);\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}student/{{student_id}}",
+							"host": [
+								"{{baseUrl}}student"
+							],
+							"path": [
+								"{{student_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all students data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const respData = pm.response.json();\r",
+									"const deletedStudent= respData.data.find(ds => ds.studentID == environment.student_id);\r",
+									"pm.test(\"Verify that student does not exist anymore\", function(){\r",
+									"    pm.expect(deletedStudent).to.be.undefined;\r",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}students",
+							"host": [
+								"{{baseUrl}}students"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
